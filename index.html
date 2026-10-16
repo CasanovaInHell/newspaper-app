@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Newspaper">
+<title>Newspaper — clean article reader</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, system-ui, sans-serif; background: #0d1117; color: #e6edf3; min-height: 100dvh; display: flex; flex-direction: column; }
+  header { padding: 14px 16px 10px; background: #161b22; border-bottom: 1px solid #30363d; }
+  header h1 { font-size: 19px; margin: 0; }
+  header p { margin: 3px 0 0; font-size: 12px; color: #8b949e; }
+  .bar { display: flex; gap: 8px; padding: 12px; background: #161b22; border-bottom: 1px solid #30363d; position: sticky; top: 0; }
+  input { flex: 1; min-width: 0; padding: 12px; font-size: 15px; border-radius: 10px; border: 1px solid #30363d; background: #0d1117; color: #e6edf3; outline: none; }
+  button { padding: 12px 16px; font-size: 15px; font-weight: 600; border-radius: 10px; border: 1px solid #238636; background: #238636; color: #fff; }
+  button.secondary { background: #21262d; border-color: #30363d; color: #e6edf3; }
+  button:disabled { opacity: .5; }
+  main { flex: 1; padding: 16px; max-width: 760px; width: 100%; margin: 0 auto; }
+  #status { font-size: 13px; color: #d29922; min-height: 18px; }
+  #status.err { color: #f85149; }
+  article h2 { font-size: 21px; line-height: 1.3; margin: 10px 0 4px; }
+  article .src { font-size: 12px; color: #8b949e; word-break: break-all; margin-bottom: 14px; }
+  article .body { font-size: 16.5px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
+  .actions { display: none; gap: 8px; margin: 14px 0 4px; }
+  .actions.show { display: flex; }
+  footer { padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); font-size: 11px; color: #8b949e; border-top: 1px solid #30363d; background: #161b22; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🗞️ Newspaper</h1>
+  <p>Paste an article link. Get the clean text — no ads, no clutter.</p>
+</header>
+<div class="bar">
+  <input id="url" type="url" inputmode="url" placeholder="https://… article link" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false">
+  <button id="go">Fetch</button>
+</div>
+<main>
+  <div id="status"></div>
+  <div class="actions" id="actions">
+    <button class="secondary" id="copy">Copy article text</button>
+  </div>
+  <article id="article"></article>
+</main>
+<footer>Built on the idea of codelucas/newspaper — article extraction, phone-style. Add to Home Screen and it sits like a proper app.</footer>
+
+<script>
+  const urlEl = document.getElementById('url');
+  const goBtn = document.getElementById('go');
+  const statusEl = document.getElementById('status');
+  const articleEl = document.getElementById('article');
+  const actionsEl = document.getElementById('actions');
+  const copyBtn = document.getElementById('copy');
+  let lastText = "";
+
+  function setStatus(msg, isErr) {
+    statusEl.textContent = msg || "";
+    statusEl.className = isErr ? "err" : "";
+  }
+
+  function parseReader(raw, sourceUrl) {
+    let title = "";
+    let body = raw;
+    const titleMatch = raw.match(/^Title:\s*(.+)$/m);
+    if (titleMatch) title = titleMatch[1].trim();
+    const mdIdx = raw.indexOf("Markdown Content:");
+    if (mdIdx >= 0) body = raw.slice(mdIdx + "Markdown Content:".length).trim();
+    if (!title) {
+      const firstLine = body.split("\n").map(s => s.trim()).find(s => s.length > 0);
+      title = firstLine || "Article";
+    }
+    return { title, body };
+  }
+
+  async function fetchArticle() {
+    let u = urlEl.value.trim();
+    if (!u) { setStatus("Paste an article link first.", true); return; }
+    if (!/^https?:\/\//i.test(u)) u = "https://" + u;
+    goBtn.disabled = true;
+    articleEl.innerHTML = "";
+    actionsEl.classList.remove("show");
+    setStatus("Fetching and cleaning the article…");
+    try {
+      const resp = await fetch("https://r.jina.ai/" + u);
+      if (!resp.ok) throw new Error("reader returned " + resp.status);
+      const raw = await resp.text();
+      const { title, body } = parseReader(raw, u);
+      if (!body || body.length < 40) throw new Error("no article text came back");
+      lastText = title + "\n\nSource: " + u + "\n\n" + body;
+      const h2 = document.createElement("h2"); h2.textContent = title;
+      const src = document.createElement("div"); src.className = "src"; src.textContent = u;
+      const div = document.createElement("div"); div.className = "body"; div.textContent = body;
+      articleEl.append(h2, src, div);
+      actionsEl.classList.add("show");
+      setStatus("");
+    } catch (e) {
+      setStatus("That one didn't come through — the site may block readers, or the link needs the full https:// address. Try another article.", true);
+    }
+    goBtn.disabled = false;
+  }
+
+  goBtn.addEventListener('click', fetchArticle);
+  urlEl.addEventListener('keydown', (e) => { if (e.key === "Enter") fetchArticle(); });
+  copyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(lastText);
+      copyBtn.textContent = "Copied ✓";
+      setTimeout(() => copyBtn.textContent = "Copy article text", 1800);
+    } catch (e) {
+      setStatus("Copy was blocked by the browser — long-press the text to copy it by hand.", true);
+    }
+  });
+</script>
+</body>
+</html>
