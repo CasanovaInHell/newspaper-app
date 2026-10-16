@@ -1,120 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Newspaper">
-<title>Newspaper — clean article reader</title>
+<meta name="theme-color" content="#0d1117">
+<title>Newspaper — clean article text</title>
 <style>
-  :root { color-scheme: dark; }
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: -apple-system, system-ui, sans-serif; background: #0d1117; color: #e6edf3; min-height: 100dvh; display: flex; flex-direction: column; }
-  header { padding: 14px 16px 10px; background: #161b22; border-bottom: 1px solid #30363d; }
-  header h1 { font-size: 19px; margin: 0; }
-  header p { margin: 3px 0 0; font-size: 12px; color: #8b949e; }
-  .bar { display: flex; gap: 8px; padding: 12px; background: #161b22; border-bottom: 1px solid #30363d; position: sticky; top: 0; }
-  input { flex: 1; min-width: 0; padding: 12px; font-size: 15px; border-radius: 10px; border: 1px solid #30363d; background: #0d1117; color: #e6edf3; outline: none; }
-  button { padding: 12px 16px; font-size: 15px; font-weight: 600; border-radius: 10px; border: 1px solid #238636; background: #238636; color: #fff; }
-  button.secondary { background: #21262d; border-color: #30363d; color: #e6edf3; }
-  button:disabled { opacity: .5; }
-  main { flex: 1; padding: 16px; max-width: 760px; width: 100%; margin: 0 auto; }
-  #status { font-size: 13px; color: #d29922; min-height: 18px; }
-  #status.err { color: #f85149; }
-  article h2 { font-size: 21px; line-height: 1.3; margin: 10px 0 4px; }
-  article .src { font-size: 12px; color: #8b949e; word-break: break-all; margin-bottom: 14px; }
-  article .body { font-size: 16.5px; line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
-  .actions { display: none; gap: 8px; margin: 14px 0 4px; }
-  .actions.show { display: flex; }
-  footer { padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); font-size: 11px; color: #8b949e; border-top: 1px solid #30363d; background: #161b22; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#0d1117; color:#e6edf3; }
+  header { padding:18px 16px 6px; }
+  h1 { font-size:26px; margin:0; }
+  .sub { color:#9da7b3; font-size:14px; margin-top:4px; }
+  .row { display:flex; gap:8px; padding:14px 16px 4px; }
+  input[type=url] { flex:1; font-size:16px; padding:13px; border-radius:10px; border:1px solid #3d444d; background:#151a21; color:#e6edf3; }
+  button { font-size:16px; border:0; border-radius:10px; padding:13px 18px; cursor:pointer; }
+  .go { background:#2ea043; color:#fff; font-weight:700; }
+  .go:disabled { background:#444; }
+  .ghost { background:#21262d; color:#e6edf3; border:1px solid #3d444d; }
+  #status { padding:8px 16px 0; color:#9da7b3; font-size:14px; min-height:20px; }
+  #article { padding:10px 16px 8px; }
+  #article h2 { font-size:22px; line-height:1.25; }
+  #body { white-space:pre-wrap; word-break:break-word; font-size:17px; line-height:1.55; }
+  .pastebox { padding:4px 16px; }
+  textarea { width:100%; height:110px; font-size:15px; padding:12px; border-radius:10px; border:1px solid #3d444d; background:#151a21; color:#e6edf3; }
+  details { padding:6px 16px; color:#9da7b3; font-size:14px; }
+  footer { padding:14px 16px 26px; color:#9da7b3; font-size:13px; text-align:center; }
 </style>
 </head>
 <body>
 <header>
   <h1>🗞️ Newspaper</h1>
-  <p>Paste an article link. Get the clean text — no ads, no clutter.</p>
+  <div class="sub">Paste an article link. Get the clean text — no ads, no clutter.</div>
 </header>
-<div class="bar">
-  <input id="url" type="url" inputmode="url" placeholder="https://… article link" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false">
-  <button id="go">Fetch</button>
+
+<div class="row">
+  <input type="url" id="url" placeholder="Paste article link here" inputmode="url">
+  <button class="go" id="fetch">Fetch</button>
 </div>
-<main>
-  <div id="status"></div>
-  <div class="actions" id="actions">
-    <button class="secondary" id="copy">Copy article text</button>
+<div id="status"></div>
+
+<div id="article" style="display:none">
+  <h2 id="title"></h2>
+  <div id="body"></div>
+  <div class="row" style="padding-left:0">
+    <button class="ghost" id="copy">Copy article</button>
   </div>
-  <article id="article"></article>
-</main>
+</div>
+
+<details>
+  <summary>Link won't fetch? Paste the article text instead — she'll clean and hold it for copying.</summary>
+  <div class="pastebox">
+    <textarea id="paste" placeholder="Paste the article text here"></textarea>
+    <div class="row" style="padding-left:0">
+      <button class="ghost" id="usepaste">Use this text</button>
+    </div>
+  </div>
+</details>
+
 <footer>Built on the idea of codelucas/newspaper — article extraction, phone-style. Add to Home Screen and it sits like a proper app.</footer>
 
 <script>
-  const urlEl = document.getElementById('url');
-  const goBtn = document.getElementById('go');
-  const statusEl = document.getElementById('status');
-  const articleEl = document.getElementById('article');
-  const actionsEl = document.getElementById('actions');
-  const copyBtn = document.getElementById('copy');
-  let lastText = "";
+const statusEl = document.getElementById('status');
+const articleEl = document.getElementById('article');
+const titleEl = document.getElementById('title');
+const bodyEl = document.getElementById('body');
+const fetchBtn = document.getElementById('fetch');
+let cleanText = '';
 
-  function setStatus(msg, isErr) {
-    statusEl.textContent = msg || "";
-    statusEl.className = isErr ? "err" : "";
+function normalize(u) {
+  u = (u || '').trim();
+  if (!u) return '';
+  if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+  return u;
+}
+function show(title, text) {
+  titleEl.textContent = title || '';
+  bodyEl.textContent = text;
+  cleanText = (title ? title + '\n\n' : '') + text;
+  articleEl.style.display = 'block';
+}
+function fromJina(raw) {
+  let title = '';
+  let text = raw;
+  const m = raw.match(/^Title:\s*(.+)$/m);
+  if (m) title = m[1].trim();
+  const mc = raw.match(/Markdown Content:\s*\n([\s\S]*)$/);
+  if (mc) text = mc[1];
+  text = text.replace(/!\[[^\]]*\]\([^)]*\)/g, '').replace(/\n{3,}/g, '\n\n').trim();
+  return { title, text };
+}
+function fromHTML(html) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const title = (doc.querySelector('title') || {}).textContent || '';
+  doc.querySelectorAll('script,style,nav,header,footer,aside,form').forEach(n => n.remove());
+  let text = (doc.body ? doc.body.innerText : '').replace(/\n{3,}/g, '\n\n').trim();
+  return { title: title.trim(), text };
+}
+async function tryFetch(url) {
+  const attempts = [
+    async () => { const r = await fetch('https://r.jina.ai/' + url); if (!r.ok) throw 0; return fromJina(await r.text()); },
+    async () => { const r = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(url)); if (!r.ok) throw 0; return fromHTML(await r.text()); },
+    async () => { const r = await fetch('https://corsproxy.io/?url=' + encodeURIComponent(url)); if (!r.ok) throw 0; return fromHTML(await r.text()); }
+  ];
+  for (const a of attempts) {
+    try { const res = await a(); if (res.text && res.text.length > 200) return res; } catch (e) {}
   }
-
-  function parseReader(raw, sourceUrl) {
-    let title = "";
-    let body = raw;
-    const titleMatch = raw.match(/^Title:\s*(.+)$/m);
-    if (titleMatch) title = titleMatch[1].trim();
-    const mdIdx = raw.indexOf("Markdown Content:");
-    if (mdIdx >= 0) body = raw.slice(mdIdx + "Markdown Content:".length).trim();
-    if (!title) {
-      const firstLine = body.split("\n").map(s => s.trim()).find(s => s.length > 0);
-      title = firstLine || "Article";
-    }
-    return { title, body };
+  return null;
+}
+fetchBtn.onclick = async () => {
+  const url = normalize(document.getElementById('url').value);
+  if (!url) { statusEl.textContent = 'Paste a link first.'; return; }
+  fetchBtn.disabled = true;
+  statusEl.textContent = 'Fetching the article… some papers take a while.';
+  const res = await tryFetch(url);
+  fetchBtn.disabled = false;
+  if (res) {
+    statusEl.textContent = '';
+    show(res.title, res.text);
+  } else {
+    statusEl.textContent = 'That paper would not hand her the article (paywall or a locked door). Open it in your browser, copy the text, and use the paste box below — she will still clean it and hold it for you.';
+    articleEl.style.display = 'none';
   }
-
-  async function fetchArticle() {
-    let u = urlEl.value.trim();
-    if (!u) { setStatus("Paste an article link first.", true); return; }
-    if (!/^https?:\/\//i.test(u)) u = "https://" + u;
-    goBtn.disabled = true;
-    articleEl.innerHTML = "";
-    actionsEl.classList.remove("show");
-    setStatus("Fetching and cleaning the article…");
-    try {
-      const resp = await fetch("https://r.jina.ai/" + u);
-      if (!resp.ok) throw new Error("reader returned " + resp.status);
-      const raw = await resp.text();
-      const { title, body } = parseReader(raw, u);
-      if (!body || body.length < 40) throw new Error("no article text came back");
-      lastText = title + "\n\nSource: " + u + "\n\n" + body;
-      const h2 = document.createElement("h2"); h2.textContent = title;
-      const src = document.createElement("div"); src.className = "src"; src.textContent = u;
-      const div = document.createElement("div"); div.className = "body"; div.textContent = body;
-      articleEl.append(h2, src, div);
-      actionsEl.classList.add("show");
-      setStatus("");
-    } catch (e) {
-      setStatus("That one didn't come through — the site may block readers, or the link needs the full https:// address. Try another article.", true);
-    }
-    goBtn.disabled = false;
-  }
-
-  goBtn.addEventListener('click', fetchArticle);
-  urlEl.addEventListener('keydown', (e) => { if (e.key === "Enter") fetchArticle(); });
-  copyBtn.addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(lastText);
-      copyBtn.textContent = "Copied ✓";
-      setTimeout(() => copyBtn.textContent = "Copy article text", 1800);
-    } catch (e) {
-      setStatus("Copy was blocked by the browser — long-press the text to copy it by hand.", true);
-    }
-  });
+};
+document.getElementById('usepaste').onclick = () => {
+  const t = document.getElementById('paste').value.trim();
+  if (!t) { statusEl.textContent = 'The paste box is empty.'; return; }
+  statusEl.textContent = '';
+  show('', t);
+};
+document.getElementById('copy').onclick = async () => {
+  try { await navigator.clipboard.writeText(cleanText); statusEl.textContent = 'Copied — paste it anywhere.'; }
+  catch (e) { statusEl.textContent = 'Copy blocked by the browser — long-press the text instead.'; }
+};
 </script>
 </body>
 </html>
